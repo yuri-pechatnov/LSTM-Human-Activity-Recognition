@@ -744,3 +744,10 @@ My code is available under the [MIT License](https://github.com/guillaume-cheval
 !jupyter nbconvert --to markdown LSTM.ipynb
 !mv LSTM.md README.md
 ```
+
+    [NbConvertApp] Converting notebook LSTM.ipynb to markdown
+    [NbConvertApp] Support files will be in LSTM_files/
+    [NbConvertApp] Making directory LSTM_files
+    [NbConvertApp] Making directory LSTM_files
+    [NbConvertApp] Writing 35176 bytes to LSTM.md
+
