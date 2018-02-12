@@ -1,40 +1,43 @@
 
-# GRU for Human Activity Recognition
+# coding: utf-8
 
-Human activity recognition using smartphones dataset and an LSTM RNN. Classifying the type of movement amongst six categories:
-- WALKING,
-- WALKING_UPSTAIRS,
-- WALKING_DOWNSTAIRS,
-- SITTING,
-- STANDING,
-- LAYING.
+# # GRU for Human Activity Recognition
+# 
+# Human activity recognition using smartphones dataset and an LSTM RNN. Classifying the type of movement amongst six categories:
+# - WALKING,
+# - WALKING_UPSTAIRS,
+# - WALKING_DOWNSTAIRS,
+# - SITTING,
+# - STANDING,
+# - LAYING.
+# 
+# Compared to a classical approach, using a Recurrent Neural Networks (RNN) with Gatet Recurent Unit cells (GRUs) require no or almost no feature engineering. Data can be fed directly into the neural network who acts like a black box, modeling the problem correctly. Other research on the activity recognition dataset used mostly use a big amount of feature engineering, which is rather a signal processing approach combined with classical data science techniques. The approach here is rather very simple in terms of how much did the data was preprocessed. 
+# 
+# 
+# ## Details about input data
+# 
+# I will be using an GRU on the data to learn (as a cellphone attached on the waist) to recognise the type of activity that the user is doing. The dataset's description goes like this:
+# 
+# > The sensor signals (accelerometer and gyroscope) were pre-processed by applying noise filters and then sampled in fixed-width sliding windows of 2.56 sec and 50% overlap (128 readings/window). The sensor acceleration signal, which has gravitational and body motion components, was separated using a Butterworth low-pass filter into body acceleration and gravity. The gravitational force is assumed to have only low frequency components, therefore a filter with 0.3 Hz cutoff frequency was used. 
+# 
+# That said, I will use the almost raw data: only the gravity effect has been filtered out of the accelerometer  as a preprocessing step for another 3D feature as an input to help learning. 
+# 
+# ## What is an RNN?
+# 
+# As explained in [this article](http://karpathy.github.io/2015/05/21/rnn-effectiveness/), an RNN takes many input vectors to process them and output other vectors. It can be roughly pictured like in the image below, imagining each rectangle has a vectorial depth and other special hidden quirks in the image below. **In our case, the "many to one" architecture is used**: we accept time series of feature vectors (one vector per time step) to convert them to a probability vector at the output for classification. Note that a "one to one" architecture would be a standard feedforward neural network. 
+# 
+# <img src="http://karpathy.github.io/assets/rnn/diags.jpeg" />
+# 
+# An GRU is an improved RNN. It is more complex, but easier to train, avoiding what is called the vanishing gradient problem. 
+# 
+# 
+# ## Results 
+# 
+# Scroll on! Nice visuals awaits. 
 
-Compared to a classical approach, using a Recurrent Neural Networks (RNN) with Gatet Recurent Unit cells (GRUs) require no or almost no feature engineering. Data can be fed directly into the neural network who acts like a black box, modeling the problem correctly. Other research on the activity recognition dataset used mostly use a big amount of feature engineering, which is rather a signal processing approach combined with classical data science techniques. The approach here is rather very simple in terms of how much did the data was preprocessed. 
+# In[1]:
 
 
-## Details about input data
-
-I will be using an GRU on the data to learn (as a cellphone attached on the waist) to recognise the type of activity that the user is doing. The dataset's description goes like this:
-
-> The sensor signals (accelerometer and gyroscope) were pre-processed by applying noise filters and then sampled in fixed-width sliding windows of 2.56 sec and 50% overlap (128 readings/window). The sensor acceleration signal, which has gravitational and body motion components, was separated using a Butterworth low-pass filter into body acceleration and gravity. The gravitational force is assumed to have only low frequency components, therefore a filter with 0.3 Hz cutoff frequency was used. 
-
-That said, I will use the almost raw data: only the gravity effect has been filtered out of the accelerometer  as a preprocessing step for another 3D feature as an input to help learning. 
-
-## What is an RNN?
-
-As explained in [this article](http://karpathy.github.io/2015/05/21/rnn-effectiveness/), an RNN takes many input vectors to process them and output other vectors. It can be roughly pictured like in the image below, imagining each rectangle has a vectorial depth and other special hidden quirks in the image below. **In our case, the "many to one" architecture is used**: we accept time series of feature vectors (one vector per time step) to convert them to a probability vector at the output for classification. Note that a "one to one" architecture would be a standard feedforward neural network. 
-
-<img src="http://karpathy.github.io/assets/rnn/diags.jpeg" />
-
-An GRU is an improved RNN. It is more complex, but easier to train, avoiding what is called the vanishing gradient problem. 
-
-
-## Results 
-
-Scroll on! Nice visuals awaits. 
-
-
-```python
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -43,10 +46,11 @@ from sklearn import metrics
 from time import time
 import os
 import sys
-```
 
 
-```python
+# In[2]:
+
+
 # some reflection
 
 def is_notebook():
@@ -70,22 +74,43 @@ if not is_notebook():
                 os.system(arg)
                 
         return Mock()
-```
 
 
-```javascript
-%%javascript
-// some reflection RUN IT MANUALLY (it doesn't works in you 'run all cells')
-IPython.notebook.kernel.execute('nb_name = ' + '"' + IPython.notebook.notebook_name + '"')
-```
+# In[3]:
 
 
-    <IPython.core.display.Javascript object>
+def find_nb_name():
+    from http.server import BaseHTTPRequestHandler, HTTPServer # python3
+    class HandleRequests(BaseHTTPRequestHandler):
+        def do_GET(self):
+            global nb_name
+            nb_name = self.requestline.split()[1][1:]
+            print("name is found: " + nb_name)
+
+    import socket
+    from contextlib import closing
+
+    def find_free_port():
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+            s.bind(('',0))
+            return s.getsockname()[1]
+
+    host = ''
+    port = find_free_port()
+    server = HTTPServer((host, port), HandleRequests)
+    server.server_activate()#.serve_forever()
+    get_ipython().run_cell_magic('javascript', '', 'var i = document.createElement("img");' + 
+                                 ' i.src = "http://localhost:' + str(port) + 
+                                '/" + IPython.notebook.notebook_name;')
+    server.handle_request()
+
+if is_notebook():
+    find_nb_name()
 
 
+# In[6]:
 
-```python
-nb_name = 'LSTM-2steps-gru=1-dev'
+
 
 # standartize arguments
 if is_notebook():
@@ -103,19 +128,16 @@ parser.add_argument('--lr', dest='lr', type=float, default=0.0025,
 parser.add_argument('--bsize', dest='batch_size', type=int, default=2000,
                     help='batch size')
 parser.add_argument('--training_iterate_dataset_times', dest='training_iterate_dataset_times', 
-                    type=int, default=2, help='Loop <training_iterate_dataset_times> times on the dataset')
+                    type=int, default=200, help='Loop <training_iterate_dataset_times> times on the dataset')
 
 args = parser.parse_args()
 print(args)
 
 
-```
 
-    Namespace(batch_size=2000, lr=0.0025, n_hidden=16, training_iterate_dataset_times=2)
-
+# In[7]:
 
 
-```python
 # Useful Constants
 
 # Those are separate normalised input features for the neural network
@@ -135,40 +157,29 @@ LABELS = [
     "LAYING"
 ] 
 
-```
 
-## Let's start by downloading the data: 
+# ## Let's start by downloading the data: 
+
+# In[8]:
 
 
-```python
 # Note: Linux bash commands start with a "!" inside those "ipython notebook" cells
 
 DATA_PATH = "data/"
 
 os.chdir(DATA_PATH)
-!python download_dataset.py
+get_ipython().system('python download_dataset.py')
 os.chdir("..")
 
 DATASET_PATH = DATA_PATH + "UCI HAR Dataset/"
 print("\n" + "Dataset is now located at: " + DATASET_PATH)
 
-```
 
-    
-    Downloading...
-    Dataset already downloaded. Did not download twice.
-    
-    Extracting...
-    Dataset already extracted. Did not extract twice.
-    
-    
-    Dataset is now located at: data/UCI HAR Dataset/
+# ## Preparing dataset:
+
+# In[9]:
 
 
-## Preparing dataset:
-
-
-```python
 TRAIN = "train/"
 TEST = "test/"
 
@@ -228,25 +239,26 @@ y_easier_train = make_y_easier(y_train)
 y_test = load_y(y_test_path)
 y_easier_test = make_y_easier(y_test)
 
-```
+
+# In[10]:
 
 
-```python
 def shuffle_all(*args):
     perm = np.random.permutation(len(args[0]))
     return [np.array(arg)[perm] for arg in args]
 
 X_train, y_train, y_easier_train = shuffle_all(X_train, y_train, y_easier_train)
-```
-
-## Additionnal Parameters:
-
-Here are some core parameter definitions for the training. 
-
-The whole neural network's structure could be summarised by enumerating those parameters and the fact an LSTM is used. 
 
 
-```python
+# ## Additionnal Parameters:
+# 
+# Here are some core parameter definitions for the training. 
+# 
+# The whole neural network's structure could be summarised by enumerating those parameters and the fact an LSTM is used. 
+
+# In[11]:
+
+
 # Input Data 
 
 training_data_count = len(X_train)  # 7352 training series (with 50% overlap between each serie)
@@ -276,18 +288,12 @@ print("(X shape, y shape, every X's mean, every X's standard deviation)")
 print(X_test.shape, y_test.shape, np.mean(X_test), np.std(X_test))
 print("The dataset is therefore properly normalised, as expected, but not yet one-hot encoded.")
 
-```
 
-    Some useful info to get an insight on dataset's shape and normalisation:
-    (X shape, y shape, every X's mean, every X's standard deviation)
-    (2947, 128, 9) (2947, 1) 0.0991399 0.395671
-    The dataset is therefore properly normalised, as expected, but not yet one-hot encoded.
+# ## Utility functions for training:
+
+# In[12]:
 
 
-## Utility functions for training:
-
-
-```python
 def MAKE_RNN(_X):
     # Function returns a tensorflow LSTM (RNN) artificial neural network from given parameters. 
     # Moreover, two LSTM cells are stacked which adds deepness to the neural network. 
@@ -347,12 +353,12 @@ def one_hot(y_, n_values=n_classes):
     y_ = y_.reshape(len(y_))
     return np.eye(n_values)[np.array(y_, dtype=np.int32)]  # Returns FLOATS
 
-```
 
-## Let's get serious and build the neural network:
+# ## Let's get serious and build the neural network:
+
+# In[13]:
 
 
-```python
 # Graph input/output
 x = tf.placeholder(tf.float32, [None, n_steps, n_input])
 y = tf.placeholder(tf.float32, [None, n_classes])
@@ -369,19 +375,21 @@ accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 correct_pred_easier = tf.equal(tf.argmax(pred_easier,1), tf.argmax(y,1))
 accuracy_easier = tf.reduce_mean(tf.cast(correct_pred_easier, tf.float32))
-```
 
 
-```python
+# In[14]:
+
+
 def extract_batch_xy(x, y, step, batch_size):
     return extract_batch(x, step, batch_size), one_hot(extract_batch(y, step, batch_size))
-```
-
-## Hooray, now train the neural network:
-### First stage of training (easier):
 
 
-```python
+# ## Hooray, now train the neural network:
+# ### First stage of training (easier):
+
+# In[15]:
+
+
 start_learning_time = time()
 
 from IPython.display import clear_output
@@ -452,13 +460,9 @@ while step * batch_size <= training_iters:
 
         plt.show()
         
-        print("Training iter #" + str(step*batch_size) + \
-              ":   Batch Loss = " + "{:.6f}".format(loss) + \
-              ", Accuracy = {}".format(acc))
+        print("Training iter #" + str(step*batch_size) +               ":   Batch Loss = " + "{:.6f}".format(loss) +               ", Accuracy = {}".format(acc))
 
-        print("PERFORMANCE ON TEST SET: " + \
-              "Batch Loss = {}".format(loss2) + \
-              ", Accuracy = {}".format(acc2))
+        print("PERFORMANCE ON TEST SET: " +               "Batch Loss = {}".format(loss2) +               ", Accuracy = {}".format(acc2))
         
     step += 1
 
@@ -477,20 +481,14 @@ one_hot_predictions, accuracyv, final_loss = sess.run(
 test_losses.append(final_loss)
 test_accuracies.append(accuracyv)
 
-print("FINAL RESULT: " + \
-      "Batch Loss = {}".format(final_loss) + \
-      ", Accuracy = {}".format(accuracyv))
-
-```
-
-    Optimization Finished!
-    FINAL RESULT: Batch Loss = 1.9036076068878174, Accuracy = 0.010858501307666302
+print("FINAL RESULT: " +       "Batch Loss = {}".format(final_loss) +       ", Accuracy = {}".format(accuracyv))
 
 
-### Second stage (normal)
+# ### Second stage (normal)
+
+# In[16]:
 
 
-```python
 from IPython.display import clear_output
 #To keep track of training's performance
 test_losses = []
@@ -554,13 +552,9 @@ while step * batch_size <= training_iters2:
         plt.ylim(0, 2)
         plt.show()
         
-        print("Training iter #" + str(step*batch_size) + \
-              ":   Batch Loss = " + "{:.6f}".format(loss) + \
-              ", Accuracy = {}".format(acc))
+        print("Training iter #" + str(step*batch_size) +               ":   Batch Loss = " + "{:.6f}".format(loss) +               ", Accuracy = {}".format(acc))
 
-        print("PERFORMANCE ON TEST SET: " + \
-              "Batch Loss = {}".format(loss2) + \
-              ", Accuracy = {}".format(acc2))
+        print("PERFORMANCE ON TEST SET: " +               "Batch Loss = {}".format(loss2) +               ", Accuracy = {}".format(acc2))
         
     step += 1
 
@@ -579,18 +573,12 @@ one_hot_predictions, accuracyv, final_loss = sess.run(
 test_losses.append(final_loss)
 test_accuracies.append(accuracyv)
 
-print("FINAL RESULT: " + \
-      "Batch Loss = {}".format(final_loss) + \
-      ", Accuracy = {}".format(accuracyv))
-
-```
-
-    Optimization Finished!
-    FINAL RESULT: Batch Loss = 1.7878906726837158, Accuracy = 0.1832371950149536
+print("FINAL RESULT: " +       "Batch Loss = {}".format(final_loss) +       ", Accuracy = {}".format(accuracyv))
 
 
+# In[17]:
 
-```python
+
 if not is_notebook():
     one_hot_predictions, accuracyv, final_loss = sess.run(
         [pred, accuracy, cost],
@@ -607,34 +595,13 @@ if not is_notebook():
     })
     print("RESULT " + str(argsdict))
     exit(0)
-```
 
 
-```python
-argsdict = dict(args.__dict__)
-argsdict.update({
-        "accuracy": float(1),
-        "time": float(time() - 1),
-        "memory": sum(int(np.prod(var.shape)) for var in []) * 4,
-})
-argsdict
-```
+# ### A вот так выглядят данные. Экспоненциально сглажены для лучшего восприятия
+
+# In[20]:
 
 
-
-
-    {'accuracy': 1.0,
-     'batch_size': 2000,
-     'lr': 0.0025,
-     'memory': 0,
-     'n_hidden': 16,
-     'time': 1518367116.8480287,
-     'training_iterate_dataset_times': 2}
-
-
-
-
-```python
 if is_notebook():
     import pandas as pd
     def show_serie(i):
@@ -646,61 +613,17 @@ if is_notebook():
 
     show_serie(0)
     show_serie(101)
-```
 
 
-    'WALKING'
+# ## Training is good, but having visual insight is even better:
+# 
+# Okay, let's plot this simply in the notebook for now.
+
+# In[21]:
 
 
-    LSTM-2steps-gru=1-dev.ipynb:5: FutureWarning: pd.ewm_mean is deprecated for DataFrame and will be removed in a future version, replace with 
-    	DataFrame.ewm(min_periods=0,halflife=5,ignore_na=False,adjust=True).mean()
-      "metadata": {},
-    LSTM-2steps-gru=1-dev.ipynb:7: FutureWarning: pd.ewm_mean is deprecated for DataFrame and will be removed in a future version, replace with 
-    	DataFrame.ewm(min_periods=0,halflife=7,ignore_na=False,adjust=True).mean()
-      "# GRU for Human Activity Recognition\n",
-
-
-
-![png](LSTM-2steps-gru%3D1-dev_files/LSTM-2steps-gru%3D1-dev_24_2.png)
-
-
-
-    'STANDING'
-
-
-    LSTM-2steps-gru=1-dev.ipynb:5: FutureWarning: pd.ewm_mean is deprecated for DataFrame and will be removed in a future version, replace with 
-    	DataFrame.ewm(min_periods=0,halflife=5,ignore_na=False,adjust=True).mean()
-      "metadata": {},
-    LSTM-2steps-gru=1-dev.ipynb:7: FutureWarning: pd.ewm_mean is deprecated for DataFrame and will be removed in a future version, replace with 
-    	DataFrame.ewm(min_periods=0,halflife=7,ignore_na=False,adjust=True).mean()
-      "# GRU for Human Activity Recognition\n",
-
-
-
-![png](LSTM-2steps-gru%3D1-dev_files/LSTM-2steps-gru%3D1-dev_24_5.png)
-
-
-
-```python
-var_bytes = sum(int(np.prod(var.shape)) for var in tf.trainable_variables()) * 4
-var_bytes
-```
-
-
-
-
-    8512
-
-
-
-## Training is good, but having visual insight is even better:
-
-Okay, let's plot this simply in the notebook for now.
-
-
-```python
 # (Inline plots: )
-%matplotlib inline
+get_ipython().run_line_magic('matplotlib', 'inline')
 
 font = {
     'weight' : 'bold',
@@ -731,104 +654,13 @@ plt.ylabel('Training Progress (Loss or Accuracy values)')
 plt.xlabel('Training iteration')
 plt.ylim(0, 2)
 plt.show()
-```
 
 
-    ---------------------------------------------------------------------------
+# ## And finally, the multi-class confusion matrix and metrics!
 
-    ValueError                                Traceback (most recent call last)
-
-    <ipython-input-22-9b79e05cdf94> in <module>()
-         21 )
-         22 plt.plot(indep_test_axis, np.array(test_losses),     "b-", label="Test losses")
-    ---> 23 plt.plot(indep_test_axis, np.array(test_accuracies), "g-", label="Test accuracies")
-         24 
-         25 plt.axhline(y=1.0, c='r')
+# In[22]:
 
 
-    /usr/local/lib/python3.5/dist-packages/matplotlib/pyplot.py in plot(*args, **kwargs)
-       3238                       mplDeprecation)
-       3239     try:
-    -> 3240         ret = ax.plot(*args, **kwargs)
-       3241     finally:
-       3242         ax._hold = washold
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/__init__.py in inner(ax, *args, **kwargs)
-       1708                     warnings.warn(msg % (label_namer, func.__name__),
-       1709                                   RuntimeWarning, stacklevel=2)
-    -> 1710             return func(ax, *args, **kwargs)
-       1711         pre_doc = inner.__doc__
-       1712         if pre_doc is None:
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/axes/_axes.py in plot(self, *args, **kwargs)
-       1436 
-       1437         for line in self._get_lines(*args, **kwargs):
-    -> 1438             self.add_line(line)
-       1439             lines.append(line)
-       1440 
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/axes/_base.py in add_line(self, line)
-       1757             line.set_clip_path(self.patch)
-       1758 
-    -> 1759         self._update_line_limits(line)
-       1760         if not line.get_label():
-       1761             line.set_label('_line%d' % len(self.lines))
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/axes/_base.py in _update_line_limits(self, line)
-       1779         Figures out the data limit of the given line, updating self.dataLim.
-       1780         """
-    -> 1781         path = line.get_path()
-       1782         if path.vertices.size == 0:
-       1783             return
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/lines.py in get_path(self)
-        949         """
-        950         if self._invalidy or self._invalidx:
-    --> 951             self.recache()
-        952         return self._path
-        953 
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/lines.py in recache(self, always)
-        655         if always or self._invalidy:
-        656             yconv = self.convert_yunits(self._yorig)
-    --> 657             y = _to_unmasked_float_array(yconv).ravel()
-        658         else:
-        659             y = self._y
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/cbook/__init__.py in _to_unmasked_float_array(x)
-       2006         return np.ma.asarray(x, float).filled(np.nan)
-       2007     else:
-    -> 2008         return np.asarray(x, float)
-       2009 
-       2010 
-
-
-    /usr/local/lib/python3.5/dist-packages/numpy/core/numeric.py in asarray(a, dtype, order)
-        529 
-        530     """
-    --> 531     return array(a, dtype, copy=False, order=order)
-        532 
-        533 
-
-
-    ValueError: setting an array element with a sequence.
-
-
-
-![png](LSTM-2steps-gru%3D1-dev_files/LSTM-2steps-gru%3D1-dev_27_1.png)
-
-
-## And finally, the multi-class confusion matrix and metrics!
-
-
-```python
 # Results
 
 predictions = one_hot_predictions.argmax(1)
@@ -870,112 +702,153 @@ plt.tight_layout()
 plt.ylabel('True label')
 plt.xlabel('Predicted label')
 plt.show()
-```
 
 
-```python
+# In[23]:
+
+
 sess.close()
-```
-
-## Conclusion
-
-Outstandingly, **the final accuracy is of about 90%** (depends of launch)!
-
-This means that the neural networks is almost always able to correctly identify the movement type! Remember, the phone is attached on the waist and each series to classify has just a 128 sample window of two internal sensors (a.k.a. 2.56 seconds at 50 FPS), so those predictions are extremely accurate.
-
-I specially did not expect such good results for guessing between "SITTING" and "STANDING". Those are seemingly almost the same thing from the point of view of a device placed at waist level according to how the dataset was gathered. Thought, it is still possible to see a little cluster on the matrix between those classes, which drifts away from the identity. This is great.
-
-It is also possible to see that there was a slight difficulty in doing the difference between "WALKING", "WALKING_UPSTAIRS" and "WALKING_DOWNSTAIRS". Obviously, those activities are quite similar in terms of movements. 
 
 
-```python
+# ## Conclusion
+# 
+# Outstandingly, **the final accuracy is of about 90%** (depends of launch)!
+# 
+# This means that the neural networks is almost always able to correctly identify the movement type! Remember, the phone is attached on the waist and each series to classify has just a 128 sample window of two internal sensors (a.k.a. 2.56 seconds at 50 FPS), so those predictions are extremely accurate.
+# 
+# I specially did not expect such good results for guessing between "SITTING" and "STANDING". Those are seemingly almost the same thing from the point of view of a device placed at waist level according to how the dataset was gathered. Thought, it is still possible to see a little cluster on the matrix between those classes, which drifts away from the identity. This is great.
+# 
+# It is also possible to see that there was a slight difficulty in doing the difference between "WALKING", "WALKING_UPSTAIRS" and "WALKING_DOWNSTAIRS". Obviously, those activities are quite similar in terms of movements. 
+
+# In[33]:
+
+
 os.system("jupyter nbconvert --to markdown " + nb_name)
 os.system("jupyter nbconvert --to python " + nb_name)
 nb_name
-```
 
 
+# In[47]:
 
 
-    'LSTM-2steps-gru=1-dev.ipynb'
-
-
-
-
-```python
 pyname = nb_name[:-6] + ".py"
-os.system("python3 " + pyname +
-          "--training_iterate_dataset_times 1")
-```
+pyname
 
 
+# ## Parameters selection
+
+# In[52]:
 
 
-    512
+import pandas as pd
+def dict_protocol_to_dataframe(protocol):
+    return pd.read_json('[' + protocol.replace("'", '"').replace('\n', ',') + ']')
+
+dict_protocol_to_dataframe("""{'time': 548.2270517349243, 'n_hidden': 1, 'lr': 0.0025, 'accuracy': 0.6878181099891663, 'memory': 532, 'batch_size': 2000, 'training_iterate_dataset_times': 200}
+{'lr': 0.0025, 'training_iterate_dataset_times': 200, 'n_hidden': 2, 'batch_size': 2000, 'accuracy': 0.7770613431930542, 'memory': 728, 'time': 566.6135125160217}\
+""")
 
 
+# In[38]:
 
 
-```python
-!python3 LSTM-2steps-gru=1-dev.py > big_out 2> big_out_err
-```
-
-
-```python
+#bench hhidden
 bench_cmd = """
 for i in {1..25}; do \
-    python3 LSTM-2steps-gru\=1-dev.py \
+    python3 %s \
+    --nhidden $i --training_iterate_dataset_times 200\
+    2> full_bench.err \
+    | tee -a full_bench.log \
     | grep -e "^RESULT" | cut -c 8- \
-    | tee -a bench_log; \
+    | tee -a bench.log; \
 done
-"""
+""" % pyname
 get_ipython().system("bash -c '" + bench_cmd + "'")
-```
-
-    2018-02-11 19:40:10.317974: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:10.317999: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:10.318005: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:10.318009: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:10.318013: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:10.425200: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2018-02-11 19:40:10.425560: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
-    name: GeForce 940MX
-    major: 5 minor: 0 memoryClockRate (GHz) 1.2415
-    pciBusID 0000:01:00.0
-    Total memory: 1.96GiB
-    Free memory: 1.40GiB
-    2018-02-11 19:40:10.425575: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
-    2018-02-11 19:40:10.425580: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
-    2018-02-11 19:40:10.425599: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce 940MX, pci bus id: 0000:01:00.0)
-    {'batch_size': 2000, 'lr': 0.0025, 'training_iterate_dataset_times': 2, 'time': 12.081867456436157, 'memory': 8512, 'accuracy': 0.10654903948307037, 'n_hidden': 16}
-    2018-02-11 19:40:43.449841: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:43.449867: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:43.449876: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:43.449882: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:43.449889: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:43.531265: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2018-02-11 19:40:43.531638: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
-    name: GeForce 940MX
-    major: 5 minor: 0 memoryClockRate (GHz) 1.2415
-    pciBusID 0000:01:00.0
-    Total memory: 1.96GiB
-    Free memory: 1.40GiB
-    2018-02-11 19:40:43.531654: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
-    2018-02-11 19:40:43.531660: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
-    2018-02-11 19:40:43.531668: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce 940MX, pci bus id: 0000:01:00.0)
 
 
-
-```python
-args.__dict__
-```
+# In[73]:
 
 
+bench_nhidden_protocol = """{'time': 548.2270517349243, 'n_hidden': 1, 'lr': 0.0025, 'accuracy': 0.6878181099891663, 'memory': 532, 'batch_size': 2000, 'training_iterate_dataset_times': 200}
+{'lr': 0.0025, 'training_iterate_dataset_times': 200, 'n_hidden': 2, 'batch_size': 2000, 'accuracy': 0.7770613431930542, 'memory': 728, 'time': 566.6135125160217}
+{'n_hidden': 3, 'accuracy': 0.7634882926940918, 'training_iterate_dataset_times': 200, 'time': 511.60548186302185, 'memory': 972, 'batch_size': 2000, 'lr': 0.0025}
+{'n_hidden': 4, 'lr': 0.0025, 'time': 516.9239003658295, 'training_iterate_dataset_times': 200, 'batch_size': 2000, 'accuracy': 0.8676619529724121, 'memory': 1264}
+{'lr': 0.0025, 'batch_size': 2000, 'accuracy': 0.8388190865516663, 'memory': 1604, 'training_iterate_dataset_times': 200, 'time': 531.829683303833, 'n_hidden': 5}
+{'accuracy': 0.828299880027771, 'lr': 0.0025, 'time': 548.8622722625732, 'memory': 1992, 'n_hidden': 6, 'training_iterate_dataset_times': 200, 'batch_size': 2000}
+{'memory': 2428, 'time': 697.2729513645172, 'training_iterate_dataset_times': 200, 'accuracy': 0.8870037198066711, 'lr': 0.0025, 'n_hidden': 7, 'batch_size': 2000}
+{'n_hidden': 8, 'memory': 2912, 'batch_size': 2000, 'training_iterate_dataset_times': 200, 'lr': 0.0025, 'accuracy': 0.8686800003051758, 'time': 623.4119627475739}
+{'accuracy': 0.8734305500984192, 'training_iterate_dataset_times': 200, 'batch_size': 2000, 'time': 747.621160030365, 'n_hidden': 9, 'lr': 0.0025, 'memory': 3444}
+{'lr': 0.0025, 'batch_size': 2000, 'training_iterate_dataset_times': 200, 'n_hidden': 10, 'accuracy': 0.8866643905639648, 'memory': 4024, 'time': 747.1461205482483}
+{'memory': 4652, 'time': 783.5858447551727, 'training_iterate_dataset_times': 200, 'lr': 0.0025, 'batch_size': 2000, 'n_hidden': 11, 'accuracy': 0.9032914042472839}
+{'accuracy': 0.8863250017166138, 'n_hidden': 12, 'time': 759.2517018318176, 'batch_size': 2000, 'training_iterate_dataset_times': 200, 'lr': 0.0025, 'memory': 5328}
+{'memory': 6052, 'accuracy': 0.9026128053665161, 'training_iterate_dataset_times': 200, 'batch_size': 2000, 'n_hidden': 13, 'time': 790.246125459671, 'lr': 0.0025}
+{'training_iterate_dataset_times': 200, 'batch_size': 2000, 'accuracy': 0.8934509754180908, 'memory': 6824, 'n_hidden': 14, 'time': 816.7725872993469, 'lr': 0.0025}
+{'lr': 0.0025, 'memory': 7644, 'n_hidden': 15, 'time': 837.0443296432495, 'accuracy': 0.9005767703056335, 'batch_size': 2000, 'training_iterate_dataset_times': 200}
+{'training_iterate_dataset_times': 200, 'lr': 0.0025, 'accuracy': 0.9151678681373596, 'time': 845.7109208106995, 'batch_size': 2000, 'n_hidden': 16, 'memory': 8512}
+{'training_iterate_dataset_times': 200, 'accuracy': 0.9114352464675903, 'batch_size': 2000, 'memory': 9428, 'time': 850.2257452011108, 'lr': 0.0025, 'n_hidden': 17}
+{'batch_size': 2000, 'memory': 10392, 'lr': 0.0025, 'training_iterate_dataset_times': 200, 'time': 874.3771314620972, 'accuracy': 0.9012555480003357, 'n_hidden': 18}
+{'time': 908.1808974742889, 'accuracy': 0.9172038435935974, 'memory': 11404, 'training_iterate_dataset_times': 200, 'lr': 0.0025, 'batch_size': 2000, 'n_hidden': 19}
+{'batch_size': 2000, 'memory': 12464, 'time': 922.6409084796906, 'lr': 0.0025, 'accuracy': 0.8873429894447327, 'n_hidden': 20, 'training_iterate_dataset_times': 200}
+{'memory': 13572, 'accuracy': 0.9114352464675903, 'training_iterate_dataset_times': 200, 'time': 942.4592912197113, 'lr': 0.0025, 'n_hidden': 21, 'batch_size': 2000}
+{'training_iterate_dataset_times': 200, 'n_hidden': 22, 'memory': 14728, 'lr': 0.0025, 'batch_size': 2000, 'time': 956.1021647453308, 'accuracy': 0.9022734761238098}
+{'training_iterate_dataset_times': 200, 'accuracy': 0.8978621959686279, 'batch_size': 2000, 'time': 981.2456750869751, 'lr': 0.0025, 'memory': 15932, 'n_hidden': 23}
+{'memory': 17184, 'time': 1001.4945929050446, 'accuracy': 0.9046486616134644, 'lr': 0.0025, 'training_iterate_dataset_times': 200, 'n_hidden': 24, 'batch_size': 2000}
+{'batch_size': 2000, 'training_iterate_dataset_times': 200, 'accuracy': 0.9182217121124268, 'n_hidden': 25, 'lr': 0.0025, 'memory': 18484, 'time': 1045.393786430359}"""
+
+data = dict_protocol_to_dataframe(bench_nhidden_protocol)
+data = data.set_index('n_hidden')
+
+data[["accuracy", "memory", "time"]].plot(subplots=True, figsize=(10,15), title="Selecting nhidden")
+plt.show()
 
 
-    {'batch_size': 2000,
-     'lr': 0.0025,
-     'n_hidden': 16,
-     'training_iterate_dataset_times': 2}
+# In[46]:
 
+
+#bench hhidden
+bench_cmd = """
+for i in %s; do \
+    python3 %s \
+    --lr $i --training_iterate_dataset_times 200\
+    2> full_bench.err \
+    | tee -a full_bench.log \
+    | grep -e "^RESULT" | cut -c 8- \
+    | tee -a bench.log; \
+done
+""" % (" ".join(map(str, np.arange(0.0005, 0.005, 0.0002))), pyname)
+get_ipython().system("bash -c '" + bench_cmd + "'")
+
+
+# In[74]:
+
+
+bench_nhidden_protocol = """{'n_hidden': 16, 'memory': 8512, 'time': 918.8063745498657, 'batch_size': 2000, 'accuracy': 0.8839496970176697, 'training_iterate_dataset_times': 200, 'lr': 0.0005}
+{'lr': 0.0007, 'batch_size': 2000, 'training_iterate_dataset_times': 200, 'memory': 8512, 'n_hidden': 16, 'time': 945.0494077205658, 'accuracy': 0.8537495136260986}
+{'time': 919.407149553299, 'accuracy': 0.9070240259170532, 'memory': 8512, 'batch_size': 2000, 'lr': 0.0009, 'n_hidden': 16, 'training_iterate_dataset_times': 200}
+{'accuracy': 0.903630793094635, 'time': 916.8244714736938, 'n_hidden': 16, 'lr': 0.0011, 'batch_size': 2000, 'memory': 8512, 'training_iterate_dataset_times': 200}
+{'n_hidden': 16, 'accuracy': 0.8887002468109131, 'lr': 0.0013, 'training_iterate_dataset_times': 200, 'memory': 8512, 'batch_size': 2000, 'time': 848.604528427124}
+{'n_hidden': 16, 'memory': 8512, 'batch_size': 2000, 'training_iterate_dataset_times': 200, 'time': 846.0046770572662, 'accuracy': 0.88802170753479, 'lr': 0.0015}
+{'accuracy': 0.8849677443504333, 'memory': 8512, 'time': 836.8066127300262, 'lr': 0.0017, 'n_hidden': 16, 'batch_size': 2000, 'training_iterate_dataset_times': 200}
+{'batch_size': 2000, 'memory': 8512, 'n_hidden': 16, 'accuracy': 0.9097387194633484, 'time': 831.2143180370331, 'lr': 0.0019, 'training_iterate_dataset_times': 200}
+{'accuracy': 0.8859856128692627, 'time': 829.4784965515137, 'n_hidden': 16, 'lr': 0.0021, 'training_iterate_dataset_times': 200, 'batch_size': 2000, 'memory': 8512}
+{'batch_size': 2000, 'training_iterate_dataset_times': 200, 'n_hidden': 16, 'accuracy': 0.8934508562088013, 'lr': 0.0023, 'memory': 8512, 'time': 840.4800877571106}
+{'memory': 8512, 'n_hidden': 16, 'time': 860.8175151348114, 'training_iterate_dataset_times': 200, 'batch_size': 2000, 'lr': 0.0025, 'accuracy': 0.896844208240509}
+{'lr': 0.0027, 'memory': 8512, 'time': 861.7281455993652, 'accuracy': 0.8646079897880554, 'training_iterate_dataset_times': 200, 'n_hidden': 16, 'batch_size': 2000}
+{'accuracy': 0.8785204887390137, 'batch_size': 2000, 'n_hidden': 16, 'training_iterate_dataset_times': 200, 'memory': 8512, 'time': 852.5642709732056, 'lr': 0.0029}
+{'batch_size': 2000, 'training_iterate_dataset_times': 200, 'time': 859.8158564567566, 'lr': 0.0031, 'memory': 8512, 'accuracy': 0.9151679277420044, 'n_hidden': 16}
+{'lr': 0.0033, 'batch_size': 2000, 'accuracy': 0.9043093323707581, 'n_hidden': 16, 'training_iterate_dataset_times': 200, 'memory': 8512, 'time': 856.8357677459717}
+{'batch_size': 2000, 'training_iterate_dataset_times': 200, 'memory': 8512, 'time': 859.4028468132019, 'lr': 0.0035, 'n_hidden': 16, 'accuracy': 0.88802170753479}
+{'accuracy': 0.9168644547462463, 'n_hidden': 16, 'training_iterate_dataset_times': 200, 'memory': 8512, 'time': 861.1274554729462, 'lr': 0.0037, 'batch_size': 2000}
+{'batch_size': 2000, 'lr': 0.0039, 'time': 857.9518365859985, 'n_hidden': 16, 'memory': 8512, 'accuracy': 0.909060001373291, 'training_iterate_dataset_times': 200}
+{'lr': 0.0041, 'time': 854.6585085391998, 'training_iterate_dataset_times': 200, 'n_hidden': 16, 'accuracy': 0.9273837208747864, 'batch_size': 2000, 'memory': 8512}
+{'n_hidden': 16, 'lr': 0.0043, 'accuracy': 0.896844208240509, 'memory': 8512, 'training_iterate_dataset_times': 200, 'time': 857.4266705513, 'batch_size': 2000}
+{'training_iterate_dataset_times': 200, 'time': 858.2252700328827, 'memory': 8512, 'batch_size': 2000, 'lr': 0.0045, 'n_hidden': 16, 'accuracy': 0.9009160399436951}
+{'batch_size': 2000, 'accuracy': 0.9093992710113525, 'memory': 8512, 'n_hidden': 16, 'lr': 0.0047, 'training_iterate_dataset_times': 200, 'time': 853.5595598220825}
+{'time': 853.7582416534424, 'training_iterate_dataset_times': 200, 'accuracy': 0.9053274393081665, 'n_hidden': 16, 'batch_size': 2000, 'lr': 0.0049, 'memory': 8512}"""
+
+data = dict_protocol_to_dataframe(bench_nhidden_protocol)
+data = data.set_index('lr')
+
+data[["accuracy", "memory", "time"]].plot(subplots=True, figsize=(10,15), title="Selecting learning rate")
+plt.show()
 

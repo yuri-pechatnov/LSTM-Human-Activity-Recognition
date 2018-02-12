@@ -1,40 +1,43 @@
 
-# GRU for Human Activity Recognition
+# coding: utf-8
 
-Human activity recognition using smartphones dataset and an LSTM RNN. Classifying the type of movement amongst six categories:
-- WALKING,
-- WALKING_UPSTAIRS,
-- WALKING_DOWNSTAIRS,
-- SITTING,
-- STANDING,
-- LAYING.
+# # GRU for Human Activity Recognition
+# 
+# Human activity recognition using smartphones dataset and an LSTM RNN. Classifying the type of movement amongst six categories:
+# - WALKING,
+# - WALKING_UPSTAIRS,
+# - WALKING_DOWNSTAIRS,
+# - SITTING,
+# - STANDING,
+# - LAYING.
+# 
+# Compared to a classical approach, using a Recurrent Neural Networks (RNN) with Gatet Recurent Unit cells (GRUs) require no or almost no feature engineering. Data can be fed directly into the neural network who acts like a black box, modeling the problem correctly. Other research on the activity recognition dataset used mostly use a big amount of feature engineering, which is rather a signal processing approach combined with classical data science techniques. The approach here is rather very simple in terms of how much did the data was preprocessed. 
+# 
+# 
+# ## Details about input data
+# 
+# I will be using an GRU on the data to learn (as a cellphone attached on the waist) to recognise the type of activity that the user is doing. The dataset's description goes like this:
+# 
+# > The sensor signals (accelerometer and gyroscope) were pre-processed by applying noise filters and then sampled in fixed-width sliding windows of 2.56 sec and 50% overlap (128 readings/window). The sensor acceleration signal, which has gravitational and body motion components, was separated using a Butterworth low-pass filter into body acceleration and gravity. The gravitational force is assumed to have only low frequency components, therefore a filter with 0.3 Hz cutoff frequency was used. 
+# 
+# That said, I will use the almost raw data: only the gravity effect has been filtered out of the accelerometer  as a preprocessing step for another 3D feature as an input to help learning. 
+# 
+# ## What is an RNN?
+# 
+# As explained in [this article](http://karpathy.github.io/2015/05/21/rnn-effectiveness/), an RNN takes many input vectors to process them and output other vectors. It can be roughly pictured like in the image below, imagining each rectangle has a vectorial depth and other special hidden quirks in the image below. **In our case, the "many to one" architecture is used**: we accept time series of feature vectors (one vector per time step) to convert them to a probability vector at the output for classification. Note that a "one to one" architecture would be a standard feedforward neural network. 
+# 
+# <img src="http://karpathy.github.io/assets/rnn/diags.jpeg" />
+# 
+# An GRU is an improved RNN. It is more complex, but easier to train, avoiding what is called the vanishing gradient problem. 
+# 
+# 
+# ## Results 
+# 
+# Scroll on! Nice visuals awaits. 
 
-Compared to a classical approach, using a Recurrent Neural Networks (RNN) with Gatet Recurent Unit cells (GRUs) require no or almost no feature engineering. Data can be fed directly into the neural network who acts like a black box, modeling the problem correctly. Other research on the activity recognition dataset used mostly use a big amount of feature engineering, which is rather a signal processing approach combined with classical data science techniques. The approach here is rather very simple in terms of how much did the data was preprocessed. 
+# In[15]:
 
 
-## Details about input data
-
-I will be using an GRU on the data to learn (as a cellphone attached on the waist) to recognise the type of activity that the user is doing. The dataset's description goes like this:
-
-> The sensor signals (accelerometer and gyroscope) were pre-processed by applying noise filters and then sampled in fixed-width sliding windows of 2.56 sec and 50% overlap (128 readings/window). The sensor acceleration signal, which has gravitational and body motion components, was separated using a Butterworth low-pass filter into body acceleration and gravity. The gravitational force is assumed to have only low frequency components, therefore a filter with 0.3 Hz cutoff frequency was used. 
-
-That said, I will use the almost raw data: only the gravity effect has been filtered out of the accelerometer  as a preprocessing step for another 3D feature as an input to help learning. 
-
-## What is an RNN?
-
-As explained in [this article](http://karpathy.github.io/2015/05/21/rnn-effectiveness/), an RNN takes many input vectors to process them and output other vectors. It can be roughly pictured like in the image below, imagining each rectangle has a vectorial depth and other special hidden quirks in the image below. **In our case, the "many to one" architecture is used**: we accept time series of feature vectors (one vector per time step) to convert them to a probability vector at the output for classification. Note that a "one to one" architecture would be a standard feedforward neural network. 
-
-<img src="http://karpathy.github.io/assets/rnn/diags.jpeg" />
-
-An GRU is an improved RNN. It is more complex, but easier to train, avoiding what is called the vanishing gradient problem. 
-
-
-## Results 
-
-Scroll on! Nice visuals awaits. 
-
-
-```python
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -43,10 +46,11 @@ from sklearn import metrics
 from time import time
 import os
 import sys
-```
 
 
-```python
+# In[16]:
+
+
 # some reflection
 
 def is_notebook():
@@ -70,21 +74,17 @@ if not is_notebook():
                 os.system(arg)
                 
         return Mock()
-```
 
 
-```javascript
-%%javascript
-// some reflection RUN IT MANUALLY (it doesn't works in you 'run all cells')
-IPython.notebook.kernel.execute('nb_name = ' + '"' + IPython.notebook.notebook_name + '"')
-```
+# In[17]:
 
 
-    <IPython.core.display.Javascript object>
+get_ipython().run_cell_magic('javascript', '', '// some reflection RUN IT MANUALLY (it doesn\'t works in you \'run all cells\')\nIPython.notebook.kernel.execute(\'nb_name = \' + \'"\' + IPython.notebook.notebook_name + \'"\')')
 
 
+# In[18]:
 
-```python
+
 nb_name = 'LSTM-2steps-gru=1-dev'
 
 # standartize arguments
@@ -109,13 +109,10 @@ args = parser.parse_args()
 print(args)
 
 
-```
 
-    Namespace(batch_size=2000, lr=0.0025, n_hidden=16, training_iterate_dataset_times=2)
-
+# In[5]:
 
 
-```python
 # Useful Constants
 
 # Those are separate normalised input features for the neural network
@@ -135,40 +132,29 @@ LABELS = [
     "LAYING"
 ] 
 
-```
 
-## Let's start by downloading the data: 
+# ## Let's start by downloading the data: 
+
+# In[6]:
 
 
-```python
 # Note: Linux bash commands start with a "!" inside those "ipython notebook" cells
 
 DATA_PATH = "data/"
 
 os.chdir(DATA_PATH)
-!python download_dataset.py
+get_ipython().system('python download_dataset.py')
 os.chdir("..")
 
 DATASET_PATH = DATA_PATH + "UCI HAR Dataset/"
 print("\n" + "Dataset is now located at: " + DATASET_PATH)
 
-```
 
-    
-    Downloading...
-    Dataset already downloaded. Did not download twice.
-    
-    Extracting...
-    Dataset already extracted. Did not extract twice.
-    
-    
-    Dataset is now located at: data/UCI HAR Dataset/
+# ## Preparing dataset:
+
+# In[7]:
 
 
-## Preparing dataset:
-
-
-```python
 TRAIN = "train/"
 TEST = "test/"
 
@@ -228,25 +214,26 @@ y_easier_train = make_y_easier(y_train)
 y_test = load_y(y_test_path)
 y_easier_test = make_y_easier(y_test)
 
-```
+
+# In[8]:
 
 
-```python
 def shuffle_all(*args):
     perm = np.random.permutation(len(args[0]))
     return [np.array(arg)[perm] for arg in args]
 
 X_train, y_train, y_easier_train = shuffle_all(X_train, y_train, y_easier_train)
-```
-
-## Additionnal Parameters:
-
-Here are some core parameter definitions for the training. 
-
-The whole neural network's structure could be summarised by enumerating those parameters and the fact an LSTM is used. 
 
 
-```python
+# ## Additionnal Parameters:
+# 
+# Here are some core parameter definitions for the training. 
+# 
+# The whole neural network's structure could be summarised by enumerating those parameters and the fact an LSTM is used. 
+
+# In[9]:
+
+
 # Input Data 
 
 training_data_count = len(X_train)  # 7352 training series (with 50% overlap between each serie)
@@ -276,18 +263,12 @@ print("(X shape, y shape, every X's mean, every X's standard deviation)")
 print(X_test.shape, y_test.shape, np.mean(X_test), np.std(X_test))
 print("The dataset is therefore properly normalised, as expected, but not yet one-hot encoded.")
 
-```
 
-    Some useful info to get an insight on dataset's shape and normalisation:
-    (X shape, y shape, every X's mean, every X's standard deviation)
-    (2947, 128, 9) (2947, 1) 0.0991399 0.395671
-    The dataset is therefore properly normalised, as expected, but not yet one-hot encoded.
+# ## Utility functions for training:
+
+# In[10]:
 
 
-## Utility functions for training:
-
-
-```python
 def MAKE_RNN(_X):
     # Function returns a tensorflow LSTM (RNN) artificial neural network from given parameters. 
     # Moreover, two LSTM cells are stacked which adds deepness to the neural network. 
@@ -347,12 +328,12 @@ def one_hot(y_, n_values=n_classes):
     y_ = y_.reshape(len(y_))
     return np.eye(n_values)[np.array(y_, dtype=np.int32)]  # Returns FLOATS
 
-```
 
-## Let's get serious and build the neural network:
+# ## Let's get serious and build the neural network:
+
+# In[11]:
 
 
-```python
 # Graph input/output
 x = tf.placeholder(tf.float32, [None, n_steps, n_input])
 y = tf.placeholder(tf.float32, [None, n_classes])
@@ -369,19 +350,21 @@ accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 correct_pred_easier = tf.equal(tf.argmax(pred_easier,1), tf.argmax(y,1))
 accuracy_easier = tf.reduce_mean(tf.cast(correct_pred_easier, tf.float32))
-```
 
 
-```python
+# In[16]:
+
+
 def extract_batch_xy(x, y, step, batch_size):
     return extract_batch(x, step, batch_size), one_hot(extract_batch(y, step, batch_size))
-```
-
-## Hooray, now train the neural network:
-### First stage of training (easier):
 
 
-```python
+# ## Hooray, now train the neural network:
+# ### First stage of training (easier):
+
+# In[17]:
+
+
 start_learning_time = time()
 
 from IPython.display import clear_output
@@ -452,13 +435,9 @@ while step * batch_size <= training_iters:
 
         plt.show()
         
-        print("Training iter #" + str(step*batch_size) + \
-              ":   Batch Loss = " + "{:.6f}".format(loss) + \
-              ", Accuracy = {}".format(acc))
+        print("Training iter #" + str(step*batch_size) +               ":   Batch Loss = " + "{:.6f}".format(loss) +               ", Accuracy = {}".format(acc))
 
-        print("PERFORMANCE ON TEST SET: " + \
-              "Batch Loss = {}".format(loss2) + \
-              ", Accuracy = {}".format(acc2))
+        print("PERFORMANCE ON TEST SET: " +               "Batch Loss = {}".format(loss2) +               ", Accuracy = {}".format(acc2))
         
     step += 1
 
@@ -477,20 +456,14 @@ one_hot_predictions, accuracyv, final_loss = sess.run(
 test_losses.append(final_loss)
 test_accuracies.append(accuracyv)
 
-print("FINAL RESULT: " + \
-      "Batch Loss = {}".format(final_loss) + \
-      ", Accuracy = {}".format(accuracyv))
-
-```
-
-    Optimization Finished!
-    FINAL RESULT: Batch Loss = 1.9036076068878174, Accuracy = 0.010858501307666302
+print("FINAL RESULT: " +       "Batch Loss = {}".format(final_loss) +       ", Accuracy = {}".format(accuracyv))
 
 
-### Second stage (normal)
+# ### Second stage (normal)
+
+# In[18]:
 
 
-```python
 from IPython.display import clear_output
 #To keep track of training's performance
 test_losses = []
@@ -554,13 +527,9 @@ while step * batch_size <= training_iters2:
         plt.ylim(0, 2)
         plt.show()
         
-        print("Training iter #" + str(step*batch_size) + \
-              ":   Batch Loss = " + "{:.6f}".format(loss) + \
-              ", Accuracy = {}".format(acc))
+        print("Training iter #" + str(step*batch_size) +               ":   Batch Loss = " + "{:.6f}".format(loss) +               ", Accuracy = {}".format(acc))
 
-        print("PERFORMANCE ON TEST SET: " + \
-              "Batch Loss = {}".format(loss2) + \
-              ", Accuracy = {}".format(acc2))
+        print("PERFORMANCE ON TEST SET: " +               "Batch Loss = {}".format(loss2) +               ", Accuracy = {}".format(acc2))
         
     step += 1
 
@@ -579,18 +548,12 @@ one_hot_predictions, accuracyv, final_loss = sess.run(
 test_losses.append(final_loss)
 test_accuracies.append(accuracyv)
 
-print("FINAL RESULT: " + \
-      "Batch Loss = {}".format(final_loss) + \
-      ", Accuracy = {}".format(accuracyv))
-
-```
-
-    Optimization Finished!
-    FINAL RESULT: Batch Loss = 1.7878906726837158, Accuracy = 0.1832371950149536
+print("FINAL RESULT: " +       "Batch Loss = {}".format(final_loss) +       ", Accuracy = {}".format(accuracyv))
 
 
+# In[29]:
 
-```python
+
 if not is_notebook():
     one_hot_predictions, accuracyv, final_loss = sess.run(
         [pred, accuracy, cost],
@@ -607,10 +570,11 @@ if not is_notebook():
     })
     print("RESULT " + str(argsdict))
     exit(0)
-```
 
 
-```python
+# In[28]:
+
+
 argsdict = dict(args.__dict__)
 argsdict.update({
         "accuracy": float(1),
@@ -618,23 +582,11 @@ argsdict.update({
         "memory": sum(int(np.prod(var.shape)) for var in []) * 4,
 })
 argsdict
-```
 
 
+# In[20]:
 
 
-    {'accuracy': 1.0,
-     'batch_size': 2000,
-     'lr': 0.0025,
-     'memory': 0,
-     'n_hidden': 16,
-     'time': 1518367116.8480287,
-     'training_iterate_dataset_times': 2}
-
-
-
-
-```python
 if is_notebook():
     import pandas as pd
     def show_serie(i):
@@ -646,61 +598,24 @@ if is_notebook():
 
     show_serie(0)
     show_serie(101)
-```
 
 
-    'WALKING'
+# In[21]:
 
 
-    LSTM-2steps-gru=1-dev.ipynb:5: FutureWarning: pd.ewm_mean is deprecated for DataFrame and will be removed in a future version, replace with 
-    	DataFrame.ewm(min_periods=0,halflife=5,ignore_na=False,adjust=True).mean()
-      "metadata": {},
-    LSTM-2steps-gru=1-dev.ipynb:7: FutureWarning: pd.ewm_mean is deprecated for DataFrame and will be removed in a future version, replace with 
-    	DataFrame.ewm(min_periods=0,halflife=7,ignore_na=False,adjust=True).mean()
-      "# GRU for Human Activity Recognition\n",
-
-
-
-![png](LSTM-2steps-gru%3D1-dev_files/LSTM-2steps-gru%3D1-dev_24_2.png)
-
-
-
-    'STANDING'
-
-
-    LSTM-2steps-gru=1-dev.ipynb:5: FutureWarning: pd.ewm_mean is deprecated for DataFrame and will be removed in a future version, replace with 
-    	DataFrame.ewm(min_periods=0,halflife=5,ignore_na=False,adjust=True).mean()
-      "metadata": {},
-    LSTM-2steps-gru=1-dev.ipynb:7: FutureWarning: pd.ewm_mean is deprecated for DataFrame and will be removed in a future version, replace with 
-    	DataFrame.ewm(min_periods=0,halflife=7,ignore_na=False,adjust=True).mean()
-      "# GRU for Human Activity Recognition\n",
-
-
-
-![png](LSTM-2steps-gru%3D1-dev_files/LSTM-2steps-gru%3D1-dev_24_5.png)
-
-
-
-```python
 var_bytes = sum(int(np.prod(var.shape)) for var in tf.trainable_variables()) * 4
 var_bytes
-```
 
 
+# ## Training is good, but having visual insight is even better:
+# 
+# Okay, let's plot this simply in the notebook for now.
+
+# In[22]:
 
 
-    8512
-
-
-
-## Training is good, but having visual insight is even better:
-
-Okay, let's plot this simply in the notebook for now.
-
-
-```python
 # (Inline plots: )
-%matplotlib inline
+get_ipython().run_line_magic('matplotlib', 'inline')
 
 font = {
     'weight' : 'bold',
@@ -731,104 +646,13 @@ plt.ylabel('Training Progress (Loss or Accuracy values)')
 plt.xlabel('Training iteration')
 plt.ylim(0, 2)
 plt.show()
-```
 
 
-    ---------------------------------------------------------------------------
+# ## And finally, the multi-class confusion matrix and metrics!
 
-    ValueError                                Traceback (most recent call last)
-
-    <ipython-input-22-9b79e05cdf94> in <module>()
-         21 )
-         22 plt.plot(indep_test_axis, np.array(test_losses),     "b-", label="Test losses")
-    ---> 23 plt.plot(indep_test_axis, np.array(test_accuracies), "g-", label="Test accuracies")
-         24 
-         25 plt.axhline(y=1.0, c='r')
+# In[ ]:
 
 
-    /usr/local/lib/python3.5/dist-packages/matplotlib/pyplot.py in plot(*args, **kwargs)
-       3238                       mplDeprecation)
-       3239     try:
-    -> 3240         ret = ax.plot(*args, **kwargs)
-       3241     finally:
-       3242         ax._hold = washold
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/__init__.py in inner(ax, *args, **kwargs)
-       1708                     warnings.warn(msg % (label_namer, func.__name__),
-       1709                                   RuntimeWarning, stacklevel=2)
-    -> 1710             return func(ax, *args, **kwargs)
-       1711         pre_doc = inner.__doc__
-       1712         if pre_doc is None:
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/axes/_axes.py in plot(self, *args, **kwargs)
-       1436 
-       1437         for line in self._get_lines(*args, **kwargs):
-    -> 1438             self.add_line(line)
-       1439             lines.append(line)
-       1440 
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/axes/_base.py in add_line(self, line)
-       1757             line.set_clip_path(self.patch)
-       1758 
-    -> 1759         self._update_line_limits(line)
-       1760         if not line.get_label():
-       1761             line.set_label('_line%d' % len(self.lines))
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/axes/_base.py in _update_line_limits(self, line)
-       1779         Figures out the data limit of the given line, updating self.dataLim.
-       1780         """
-    -> 1781         path = line.get_path()
-       1782         if path.vertices.size == 0:
-       1783             return
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/lines.py in get_path(self)
-        949         """
-        950         if self._invalidy or self._invalidx:
-    --> 951             self.recache()
-        952         return self._path
-        953 
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/lines.py in recache(self, always)
-        655         if always or self._invalidy:
-        656             yconv = self.convert_yunits(self._yorig)
-    --> 657             y = _to_unmasked_float_array(yconv).ravel()
-        658         else:
-        659             y = self._y
-
-
-    /usr/local/lib/python3.5/dist-packages/matplotlib/cbook/__init__.py in _to_unmasked_float_array(x)
-       2006         return np.ma.asarray(x, float).filled(np.nan)
-       2007     else:
-    -> 2008         return np.asarray(x, float)
-       2009 
-       2010 
-
-
-    /usr/local/lib/python3.5/dist-packages/numpy/core/numeric.py in asarray(a, dtype, order)
-        529 
-        530     """
-    --> 531     return array(a, dtype, copy=False, order=order)
-        532 
-        533 
-
-
-    ValueError: setting an array element with a sequence.
-
-
-
-![png](LSTM-2steps-gru%3D1-dev_files/LSTM-2steps-gru%3D1-dev_27_1.png)
-
-
-## And finally, the multi-class confusion matrix and metrics!
-
-
-```python
 # Results
 
 predictions = one_hot_predictions.argmax(1)
@@ -870,58 +694,49 @@ plt.tight_layout()
 plt.ylabel('True label')
 plt.xlabel('Predicted label')
 plt.show()
-```
 
 
-```python
+# In[ ]:
+
+
 sess.close()
-```
-
-## Conclusion
-
-Outstandingly, **the final accuracy is of about 90%** (depends of launch)!
-
-This means that the neural networks is almost always able to correctly identify the movement type! Remember, the phone is attached on the waist and each series to classify has just a 128 sample window of two internal sensors (a.k.a. 2.56 seconds at 50 FPS), so those predictions are extremely accurate.
-
-I specially did not expect such good results for guessing between "SITTING" and "STANDING". Those are seemingly almost the same thing from the point of view of a device placed at waist level according to how the dataset was gathered. Thought, it is still possible to see a little cluster on the matrix between those classes, which drifts away from the identity. This is great.
-
-It is also possible to see that there was a slight difficulty in doing the difference between "WALKING", "WALKING_UPSTAIRS" and "WALKING_DOWNSTAIRS". Obviously, those activities are quite similar in terms of movements. 
 
 
-```python
+# ## Conclusion
+# 
+# Outstandingly, **the final accuracy is of about 90%** (depends of launch)!
+# 
+# This means that the neural networks is almost always able to correctly identify the movement type! Remember, the phone is attached on the waist and each series to classify has just a 128 sample window of two internal sensors (a.k.a. 2.56 seconds at 50 FPS), so those predictions are extremely accurate.
+# 
+# I specially did not expect such good results for guessing between "SITTING" and "STANDING". Those are seemingly almost the same thing from the point of view of a device placed at waist level according to how the dataset was gathered. Thought, it is still possible to see a little cluster on the matrix between those classes, which drifts away from the identity. This is great.
+# 
+# It is also possible to see that there was a slight difficulty in doing the difference between "WALKING", "WALKING_UPSTAIRS" and "WALKING_DOWNSTAIRS". Obviously, those activities are quite similar in terms of movements. 
+
+# In[30]:
+
+
 os.system("jupyter nbconvert --to markdown " + nb_name)
 os.system("jupyter nbconvert --to python " + nb_name)
 nb_name
-```
 
 
+# In[24]:
 
 
-    'LSTM-2steps-gru=1-dev.ipynb'
-
-
-
-
-```python
 pyname = nb_name[:-6] + ".py"
 os.system("python3 " + pyname +
           "--training_iterate_dataset_times 1")
-```
 
 
+# In[27]:
 
 
-    512
+get_ipython().system('python3 LSTM-2steps-gru=1-dev.py > big_out 2> big_out_err')
 
 
+# In[ ]:
 
 
-```python
-!python3 LSTM-2steps-gru=1-dev.py > big_out 2> big_out_err
-```
-
-
-```python
 bench_cmd = """
 for i in {1..25}; do \
     python3 LSTM-2steps-gru\=1-dev.py \
@@ -930,52 +745,10 @@ for i in {1..25}; do \
 done
 """
 get_ipython().system("bash -c '" + bench_cmd + "'")
-```
-
-    2018-02-11 19:40:10.317974: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:10.317999: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:10.318005: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:10.318009: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:10.318013: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:10.425200: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2018-02-11 19:40:10.425560: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
-    name: GeForce 940MX
-    major: 5 minor: 0 memoryClockRate (GHz) 1.2415
-    pciBusID 0000:01:00.0
-    Total memory: 1.96GiB
-    Free memory: 1.40GiB
-    2018-02-11 19:40:10.425575: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
-    2018-02-11 19:40:10.425580: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
-    2018-02-11 19:40:10.425599: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce 940MX, pci bus id: 0000:01:00.0)
-    {'batch_size': 2000, 'lr': 0.0025, 'training_iterate_dataset_times': 2, 'time': 12.081867456436157, 'memory': 8512, 'accuracy': 0.10654903948307037, 'n_hidden': 16}
-    2018-02-11 19:40:43.449841: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:43.449867: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:43.449876: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:43.449882: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:43.449889: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
-    2018-02-11 19:40:43.531265: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2018-02-11 19:40:43.531638: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
-    name: GeForce 940MX
-    major: 5 minor: 0 memoryClockRate (GHz) 1.2415
-    pciBusID 0000:01:00.0
-    Total memory: 1.96GiB
-    Free memory: 1.40GiB
-    2018-02-11 19:40:43.531654: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
-    2018-02-11 19:40:43.531660: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
-    2018-02-11 19:40:43.531668: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce 940MX, pci bus id: 0000:01:00.0)
 
 
+# In[20]:
 
-```python
+
 args.__dict__
-```
-
-
-
-
-    {'batch_size': 2000,
-     'lr': 0.0025,
-     'n_hidden': 16,
-     'training_iterate_dataset_times': 2}
-
 
