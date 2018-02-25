@@ -35,7 +35,7 @@
 # 
 # Scroll on! Nice visuals awaits. 
 
-# In[15]:
+# In[1]:
 
 
 import numpy as np
@@ -48,7 +48,7 @@ import os
 import sys
 
 
-# In[16]:
+# In[2]:
 
 
 # some reflection
@@ -76,16 +76,51 @@ if not is_notebook():
         return Mock()
 
 
-# In[17]:
+# In[3]:
 
 
-get_ipython().run_cell_magic('javascript', '', '// some reflection RUN IT MANUALLY (it doesn\'t works in you \'run all cells\')\nIPython.notebook.kernel.execute(\'nb_name = \' + \'"\' + IPython.notebook.notebook_name + \'"\')')
+def notify(msg):
+    try:
+        get_ipython().system('ypnotify "' + msg + '"')
+    except:
+        print("can't notify")
 
 
-# In[18]:
+# In[4]:
 
 
-nb_name = 'LSTM-2steps-gru=1-dev'
+def find_nb_name():
+    from http.server import BaseHTTPRequestHandler, HTTPServer # python3
+    class HandleRequests(BaseHTTPRequestHandler):
+        def do_GET(self):
+            global nb_name
+            nb_name = self.requestline.split()[1][1:]
+            print("name is found: " + nb_name)
+
+    import socket
+    from contextlib import closing
+
+    def find_free_port():
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+            s.bind(('',0))
+            return s.getsockname()[1]
+
+    host = ''
+    port = find_free_port()
+    server = HTTPServer((host, port), HandleRequests)
+    server.server_activate()#.serve_forever()
+    get_ipython().run_cell_magic('javascript', '', 'var i = document.createElement("img");' + 
+                                 ' i.src = "http://localhost:' + str(port) + 
+                                '/" + IPython.notebook.notebook_name;')
+    server.handle_request()
+
+if is_notebook():
+    find_nb_name()
+
+
+# In[5]:
+
+
 
 # standartize arguments
 if is_notebook():
@@ -103,14 +138,14 @@ parser.add_argument('--lr', dest='lr', type=float, default=0.0025,
 parser.add_argument('--bsize', dest='batch_size', type=int, default=2000,
                     help='batch size')
 parser.add_argument('--training_iterate_dataset_times', dest='training_iterate_dataset_times', 
-                    type=int, default=2, help='Loop <training_iterate_dataset_times> times on the dataset')
+                    type=int, default=200, help='Loop <training_iterate_dataset_times> times on the dataset')
 
 args = parser.parse_args()
 print(args)
 
 
 
-# In[5]:
+# In[6]:
 
 
 # Useful Constants
@@ -135,7 +170,7 @@ LABELS = [
 
 # ## Let's start by downloading the data: 
 
-# In[6]:
+# In[7]:
 
 
 # Note: Linux bash commands start with a "!" inside those "ipython notebook" cells
@@ -152,7 +187,7 @@ print("\n" + "Dataset is now located at: " + DATASET_PATH)
 
 # ## Preparing dataset:
 
-# In[7]:
+# In[8]:
 
 
 TRAIN = "train/"
@@ -215,7 +250,7 @@ y_test = load_y(y_test_path)
 y_easier_test = make_y_easier(y_test)
 
 
-# In[8]:
+# In[9]:
 
 
 def shuffle_all(*args):
@@ -225,13 +260,47 @@ def shuffle_all(*args):
 X_train, y_train, y_easier_train = shuffle_all(X_train, y_train, y_easier_train)
 
 
+# In[10]:
+
+
+from sklearn.decomposition import PCA
+
+def pca_it(xyz):
+    xyz = np.array(xyz)
+    xyz[:,:] -= xyz.mean(axis=0)
+ 
+    pcator = PCA(n_components=3)
+    pcator.fit(xyz)
+    xyz = pcator.transform(xyz)
+    return xyz
+
+def pca_X(X):
+    X = np.array(X)
+    for i in range(X.shape[0]):
+        X[i, :, 0:3] = pca_it(X[i, :, 0:3])
+        X[i, :, 0:6] = 0
+    return X
+
+X_train = pca_X(X_train)
+X_test = pca_X(X_test)
+
+
+# In[11]:
+
+
+
+plt.figure(figsize=(10, 10))
+plt.plot(range(128), X_train[0, :, 1])
+plt.show()
+
+
 # ## Additionnal Parameters:
 # 
 # Here are some core parameter definitions for the training. 
 # 
 # The whole neural network's structure could be summarised by enumerating those parameters and the fact an LSTM is used. 
 
-# In[9]:
+# In[12]:
 
 
 # Input Data 
@@ -266,7 +335,7 @@ print("The dataset is therefore properly normalised, as expected, but not yet on
 
 # ## Utility functions for training:
 
-# In[10]:
+# In[13]:
 
 
 def MAKE_RNN(_X):
@@ -331,7 +400,7 @@ def one_hot(y_, n_values=n_classes):
 
 # ## Let's get serious and build the neural network:
 
-# In[11]:
+# In[14]:
 
 
 # Graph input/output
@@ -352,7 +421,7 @@ correct_pred_easier = tf.equal(tf.argmax(pred_easier,1), tf.argmax(y,1))
 accuracy_easier = tf.reduce_mean(tf.cast(correct_pred_easier, tf.float32))
 
 
-# In[16]:
+# In[15]:
 
 
 def extract_batch_xy(x, y, step, batch_size):
@@ -362,7 +431,7 @@ def extract_batch_xy(x, y, step, batch_size):
 # ## Hooray, now train the neural network:
 # ### First stage of training (easier):
 
-# In[17]:
+# In[ ]:
 
 
 start_learning_time = time()
@@ -456,12 +525,14 @@ one_hot_predictions, accuracyv, final_loss = sess.run(
 test_losses.append(final_loss)
 test_accuracies.append(accuracyv)
 
-print("FINAL RESULT: " +       "Batch Loss = {}".format(final_loss) +       ", Accuracy = {}".format(accuracyv))
+print("INTERMEDIATE RESULT: " +       "Batch Loss = {}".format(final_loss) +       ", Accuracy = {}".format(accuracyv))
+
+notify("INTERMEDIATE RESULT: " +       "Batch Loss = {}".format(final_loss) +       ", Accuracy = {}".format(accuracyv))
 
 
 # ### Second stage (normal)
 
-# In[18]:
+# In[ ]:
 
 
 from IPython.display import clear_output
@@ -551,7 +622,10 @@ test_accuracies.append(accuracyv)
 print("FINAL RESULT: " +       "Batch Loss = {}".format(final_loss) +       ", Accuracy = {}".format(accuracyv))
 
 
-# In[29]:
+notify("FINAL RESULT: " +       "Batch Loss = {}".format(final_loss) +       ", Accuracy = {}".format(accuracyv))
+
+
+# In[ ]:
 
 
 if not is_notebook():
@@ -572,19 +646,7 @@ if not is_notebook():
     exit(0)
 
 
-# In[28]:
-
-
-argsdict = dict(args.__dict__)
-argsdict.update({
-        "accuracy": float(1),
-        "time": float(time() - 1),
-        "memory": sum(int(np.prod(var.shape)) for var in []) * 4,
-})
-argsdict
-
-
-# In[20]:
+# In[ ]:
 
 
 if is_notebook():
@@ -600,7 +662,7 @@ if is_notebook():
     show_serie(101)
 
 
-# In[21]:
+# In[ ]:
 
 
 var_bytes = sum(int(np.prod(var.shape)) for var in tf.trainable_variables()) * 4
@@ -611,7 +673,7 @@ var_bytes
 # 
 # Okay, let's plot this simply in the notebook for now.
 
-# In[22]:
+# In[ ]:
 
 
 # (Inline plots: )
@@ -712,7 +774,7 @@ sess.close()
 # 
 # It is also possible to see that there was a slight difficulty in doing the difference between "WALKING", "WALKING_UPSTAIRS" and "WALKING_DOWNSTAIRS". Obviously, those activities are quite similar in terms of movements. 
 
-# In[30]:
+# In[ ]:
 
 
 os.system("jupyter nbconvert --to markdown " + nb_name)
@@ -720,35 +782,133 @@ os.system("jupyter nbconvert --to python " + nb_name)
 nb_name
 
 
-# In[24]:
+# In[ ]:
 
 
-pyname = nb_name[:-6] + ".py"
-os.system("python3 " + pyname +
-          "--training_iterate_dataset_times 1")
-
-
-# In[27]:
-
-
-get_ipython().system('python3 LSTM-2steps-gru=1-dev.py > big_out 2> big_out_err')
+raise KeyboardInterrupt("do not automatically run after it")
 
 
 # In[ ]:
 
 
+pyname = nb_name[:-6] + ".py"
+pyname
+
+
+# ## Parameters selection
+
+# In[ ]:
+
+
+import pandas as pd
+def dict_protocol_to_dataframe(protocol):
+    return pd.read_json('[' + protocol.replace("'", '"').replace('\n', ',') + ']')
+
+dict_protocol_to_dataframe("""{'time': 548.2270517349243, 'n_hidden': 1, 'lr': 0.0025, 'accuracy': 0.6878181099891663, 'memory': 532, 'batch_size': 2000, 'training_iterate_dataset_times': 200}
+{'lr': 0.0025, 'training_iterate_dataset_times': 200, 'n_hidden': 2, 'batch_size': 2000, 'accuracy': 0.7770613431930542, 'memory': 728, 'time': 566.6135125160217}\
+""")
+
+
+# In[ ]:
+
+
+#bench hhidden
 bench_cmd = """
 for i in {1..25}; do \
-    python3 LSTM-2steps-gru\=1-dev.py \
+    python3 %s \
+    --nhidden $i --training_iterate_dataset_times 200\
+    2> full_bench.err \
+    | tee -a full_bench.log \
     | grep -e "^RESULT" | cut -c 8- \
-    | tee -a bench_log; \
+    | tee -a bench.log; \
 done
-"""
+""" % pyname
 get_ipython().system("bash -c '" + bench_cmd + "'")
 
 
-# In[20]:
+# In[ ]:
 
 
-args.__dict__
+bench_nhidden_protocol = """{'time': 548.2270517349243, 'n_hidden': 1, 'lr': 0.0025, 'accuracy': 0.6878181099891663, 'memory': 532, 'batch_size': 2000, 'training_iterate_dataset_times': 200}
+{'lr': 0.0025, 'training_iterate_dataset_times': 200, 'n_hidden': 2, 'batch_size': 2000, 'accuracy': 0.7770613431930542, 'memory': 728, 'time': 566.6135125160217}
+{'n_hidden': 3, 'accuracy': 0.7634882926940918, 'training_iterate_dataset_times': 200, 'time': 511.60548186302185, 'memory': 972, 'batch_size': 2000, 'lr': 0.0025}
+{'n_hidden': 4, 'lr': 0.0025, 'time': 516.9239003658295, 'training_iterate_dataset_times': 200, 'batch_size': 2000, 'accuracy': 0.8676619529724121, 'memory': 1264}
+{'lr': 0.0025, 'batch_size': 2000, 'accuracy': 0.8388190865516663, 'memory': 1604, 'training_iterate_dataset_times': 200, 'time': 531.829683303833, 'n_hidden': 5}
+{'accuracy': 0.828299880027771, 'lr': 0.0025, 'time': 548.8622722625732, 'memory': 1992, 'n_hidden': 6, 'training_iterate_dataset_times': 200, 'batch_size': 2000}
+{'memory': 2428, 'time': 697.2729513645172, 'training_iterate_dataset_times': 200, 'accuracy': 0.8870037198066711, 'lr': 0.0025, 'n_hidden': 7, 'batch_size': 2000}
+{'n_hidden': 8, 'memory': 2912, 'batch_size': 2000, 'training_iterate_dataset_times': 200, 'lr': 0.0025, 'accuracy': 0.8686800003051758, 'time': 623.4119627475739}
+{'accuracy': 0.8734305500984192, 'training_iterate_dataset_times': 200, 'batch_size': 2000, 'time': 747.621160030365, 'n_hidden': 9, 'lr': 0.0025, 'memory': 3444}
+{'lr': 0.0025, 'batch_size': 2000, 'training_iterate_dataset_times': 200, 'n_hidden': 10, 'accuracy': 0.8866643905639648, 'memory': 4024, 'time': 747.1461205482483}
+{'memory': 4652, 'time': 783.5858447551727, 'training_iterate_dataset_times': 200, 'lr': 0.0025, 'batch_size': 2000, 'n_hidden': 11, 'accuracy': 0.9032914042472839}
+{'accuracy': 0.8863250017166138, 'n_hidden': 12, 'time': 759.2517018318176, 'batch_size': 2000, 'training_iterate_dataset_times': 200, 'lr': 0.0025, 'memory': 5328}
+{'memory': 6052, 'accuracy': 0.9026128053665161, 'training_iterate_dataset_times': 200, 'batch_size': 2000, 'n_hidden': 13, 'time': 790.246125459671, 'lr': 0.0025}
+{'training_iterate_dataset_times': 200, 'batch_size': 2000, 'accuracy': 0.8934509754180908, 'memory': 6824, 'n_hidden': 14, 'time': 816.7725872993469, 'lr': 0.0025}
+{'lr': 0.0025, 'memory': 7644, 'n_hidden': 15, 'time': 837.0443296432495, 'accuracy': 0.9005767703056335, 'batch_size': 2000, 'training_iterate_dataset_times': 200}
+{'training_iterate_dataset_times': 200, 'lr': 0.0025, 'accuracy': 0.9151678681373596, 'time': 845.7109208106995, 'batch_size': 2000, 'n_hidden': 16, 'memory': 8512}
+{'training_iterate_dataset_times': 200, 'accuracy': 0.9114352464675903, 'batch_size': 2000, 'memory': 9428, 'time': 850.2257452011108, 'lr': 0.0025, 'n_hidden': 17}
+{'batch_size': 2000, 'memory': 10392, 'lr': 0.0025, 'training_iterate_dataset_times': 200, 'time': 874.3771314620972, 'accuracy': 0.9012555480003357, 'n_hidden': 18}
+{'time': 908.1808974742889, 'accuracy': 0.9172038435935974, 'memory': 11404, 'training_iterate_dataset_times': 200, 'lr': 0.0025, 'batch_size': 2000, 'n_hidden': 19}
+{'batch_size': 2000, 'memory': 12464, 'time': 922.6409084796906, 'lr': 0.0025, 'accuracy': 0.8873429894447327, 'n_hidden': 20, 'training_iterate_dataset_times': 200}
+{'memory': 13572, 'accuracy': 0.9114352464675903, 'training_iterate_dataset_times': 200, 'time': 942.4592912197113, 'lr': 0.0025, 'n_hidden': 21, 'batch_size': 2000}
+{'training_iterate_dataset_times': 200, 'n_hidden': 22, 'memory': 14728, 'lr': 0.0025, 'batch_size': 2000, 'time': 956.1021647453308, 'accuracy': 0.9022734761238098}
+{'training_iterate_dataset_times': 200, 'accuracy': 0.8978621959686279, 'batch_size': 2000, 'time': 981.2456750869751, 'lr': 0.0025, 'memory': 15932, 'n_hidden': 23}
+{'memory': 17184, 'time': 1001.4945929050446, 'accuracy': 0.9046486616134644, 'lr': 0.0025, 'training_iterate_dataset_times': 200, 'n_hidden': 24, 'batch_size': 2000}
+{'batch_size': 2000, 'training_iterate_dataset_times': 200, 'accuracy': 0.9182217121124268, 'n_hidden': 25, 'lr': 0.0025, 'memory': 18484, 'time': 1045.393786430359}"""
+
+data = dict_protocol_to_dataframe(bench_nhidden_protocol)
+data = data.set_index('n_hidden')
+
+data[["accuracy", "memory", "time"]].plot(subplots=True, figsize=(10,15), title="Selecting nhidden")
+plt.show()
+
+
+# In[ ]:
+
+
+#bench hhidden
+bench_cmd = """
+for i in %s; do \
+    python3 %s \
+    --lr $i --training_iterate_dataset_times 200\
+    2> full_bench.err \
+    | tee -a full_bench.log \
+    | grep -e "^RESULT" | cut -c 8- \
+    | tee -a bench.log; \
+done
+""" % (" ".join(map(str, np.arange(0.0005, 0.005, 0.0002))), pyname)
+get_ipython().system("bash -c '" + bench_cmd + "'")
+
+
+# In[ ]:
+
+
+bench_nhidden_protocol = """{'n_hidden': 16, 'memory': 8512, 'time': 918.8063745498657, 'batch_size': 2000, 'accuracy': 0.8839496970176697, 'training_iterate_dataset_times': 200, 'lr': 0.0005}
+{'lr': 0.0007, 'batch_size': 2000, 'training_iterate_dataset_times': 200, 'memory': 8512, 'n_hidden': 16, 'time': 945.0494077205658, 'accuracy': 0.8537495136260986}
+{'time': 919.407149553299, 'accuracy': 0.9070240259170532, 'memory': 8512, 'batch_size': 2000, 'lr': 0.0009, 'n_hidden': 16, 'training_iterate_dataset_times': 200}
+{'accuracy': 0.903630793094635, 'time': 916.8244714736938, 'n_hidden': 16, 'lr': 0.0011, 'batch_size': 2000, 'memory': 8512, 'training_iterate_dataset_times': 200}
+{'n_hidden': 16, 'accuracy': 0.8887002468109131, 'lr': 0.0013, 'training_iterate_dataset_times': 200, 'memory': 8512, 'batch_size': 2000, 'time': 848.604528427124}
+{'n_hidden': 16, 'memory': 8512, 'batch_size': 2000, 'training_iterate_dataset_times': 200, 'time': 846.0046770572662, 'accuracy': 0.88802170753479, 'lr': 0.0015}
+{'accuracy': 0.8849677443504333, 'memory': 8512, 'time': 836.8066127300262, 'lr': 0.0017, 'n_hidden': 16, 'batch_size': 2000, 'training_iterate_dataset_times': 200}
+{'batch_size': 2000, 'memory': 8512, 'n_hidden': 16, 'accuracy': 0.9097387194633484, 'time': 831.2143180370331, 'lr': 0.0019, 'training_iterate_dataset_times': 200}
+{'accuracy': 0.8859856128692627, 'time': 829.4784965515137, 'n_hidden': 16, 'lr': 0.0021, 'training_iterate_dataset_times': 200, 'batch_size': 2000, 'memory': 8512}
+{'batch_size': 2000, 'training_iterate_dataset_times': 200, 'n_hidden': 16, 'accuracy': 0.8934508562088013, 'lr': 0.0023, 'memory': 8512, 'time': 840.4800877571106}
+{'memory': 8512, 'n_hidden': 16, 'time': 860.8175151348114, 'training_iterate_dataset_times': 200, 'batch_size': 2000, 'lr': 0.0025, 'accuracy': 0.896844208240509}
+{'lr': 0.0027, 'memory': 8512, 'time': 861.7281455993652, 'accuracy': 0.8646079897880554, 'training_iterate_dataset_times': 200, 'n_hidden': 16, 'batch_size': 2000}
+{'accuracy': 0.8785204887390137, 'batch_size': 2000, 'n_hidden': 16, 'training_iterate_dataset_times': 200, 'memory': 8512, 'time': 852.5642709732056, 'lr': 0.0029}
+{'batch_size': 2000, 'training_iterate_dataset_times': 200, 'time': 859.8158564567566, 'lr': 0.0031, 'memory': 8512, 'accuracy': 0.9151679277420044, 'n_hidden': 16}
+{'lr': 0.0033, 'batch_size': 2000, 'accuracy': 0.9043093323707581, 'n_hidden': 16, 'training_iterate_dataset_times': 200, 'memory': 8512, 'time': 856.8357677459717}
+{'batch_size': 2000, 'training_iterate_dataset_times': 200, 'memory': 8512, 'time': 859.4028468132019, 'lr': 0.0035, 'n_hidden': 16, 'accuracy': 0.88802170753479}
+{'accuracy': 0.9168644547462463, 'n_hidden': 16, 'training_iterate_dataset_times': 200, 'memory': 8512, 'time': 861.1274554729462, 'lr': 0.0037, 'batch_size': 2000}
+{'batch_size': 2000, 'lr': 0.0039, 'time': 857.9518365859985, 'n_hidden': 16, 'memory': 8512, 'accuracy': 0.909060001373291, 'training_iterate_dataset_times': 200}
+{'lr': 0.0041, 'time': 854.6585085391998, 'training_iterate_dataset_times': 200, 'n_hidden': 16, 'accuracy': 0.9273837208747864, 'batch_size': 2000, 'memory': 8512}
+{'n_hidden': 16, 'lr': 0.0043, 'accuracy': 0.896844208240509, 'memory': 8512, 'training_iterate_dataset_times': 200, 'time': 857.4266705513, 'batch_size': 2000}
+{'training_iterate_dataset_times': 200, 'time': 858.2252700328827, 'memory': 8512, 'batch_size': 2000, 'lr': 0.0045, 'n_hidden': 16, 'accuracy': 0.9009160399436951}
+{'batch_size': 2000, 'accuracy': 0.9093992710113525, 'memory': 8512, 'n_hidden': 16, 'lr': 0.0047, 'training_iterate_dataset_times': 200, 'time': 853.5595598220825}
+{'time': 853.7582416534424, 'training_iterate_dataset_times': 200, 'accuracy': 0.9053274393081665, 'n_hidden': 16, 'batch_size': 2000, 'lr': 0.0049, 'memory': 8512}"""
+
+data = dict_protocol_to_dataframe(bench_nhidden_protocol)
+data = data.set_index('lr')
+
+data[["accuracy", "memory", "time"]].plot(subplots=True, figsize=(10,15), title="Selecting learning rate")
+plt.show()
 

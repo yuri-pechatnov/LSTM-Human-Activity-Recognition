@@ -1,0 +1,13 @@
+static const int NHidden = 16;
+static const int NInput = 6;
+static const float AccelSmoothLambda = 0.84089642f;
+static const float InputDenseKernel[6][16] PROGMEM;
+static const float InputDenseBias[16] PROGMEM;
+static const float GruCellGatesKernel[32][32] PROGMEM;
+static const float GruCellGatesBias[32] PROGMEM;
+static const float GruCellCandidateKernel[32][16] PROGMEM;
+static const float GruCellCandidateBias[16] PROGMEM;
+static const float OutputDenseKernel[16][12] PROGMEM;
+static const float OutputDenseBias[12] PROGMEM;
+static const float ToClassesDenseKernel[12][6] PROGMEM;
+static const float ToClassesDenseBias[6] PROGMEM;
